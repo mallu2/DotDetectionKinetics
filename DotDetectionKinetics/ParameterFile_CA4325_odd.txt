@@ -1,0 +1,154 @@
+% Only single phase channel is currently supported.
+% Supports multiple bf/fluo channels in formats:
+%   "Ch1 Ch2", "Ch1, Ch2", "[Ch1 Ch2]", "{Ch1 Ch2}"
+phaseChannelNames = aphase
+bfChannelNames =  
+fluoChannelNames = fluo514
+rangePositions =  1:2:40 % array of position indices. Use negative indices to skip corresponding positions
+rangePhaseImages = 1 % array of phase frame indices 
+rangeFluoStack = 1 % optional, array of movie frames in fluo z-stack
+parNumWorkers = 4 % parameter for parfor-loops over the phase frames
+parforPositions = 1 % if 1, the outer loop between positions is used for code parallelization, otherwise the inner loop between frames is used
+useGPU = 0 % 1 if use GPU for deep-learning based algorithms for cell segmentation or dot detection
+%---- Sections -------------------
+% Can take three values: 0 - skip, 1 - execute, 2 - already executed
+doPreprocessing = 1
+doSegmentation = 1
+doBlobProcessing = 1
+doCellMeasurements = 1
+doDotDetection = 1 
+
+%----- Preprocessing ------------------
+angularDisplacement = 0 % in degrees, counter-clockwise image rotation
+transMatPath = % path to mat file with 3x3 transformation matrix from bf to preprocessed phase images
+transMat = [] % transformation matrix, used if transMatPath is not provided
+flipFlags = [0 0] % optional, binary array [f1 f2] where f1=1 implies flipud(image) and f2=1 implies fliplr(image)
+roiInPhase = [324 152 984 1360] % defined for preprocessed phase image after flips and rotations
+roiInFluo = [] % optional, can be left empty
+barcodeROI = [417 36 824 92] % barcode location in reoriented and rotated image before cropping, used for frame stabilization. Located above growth channels.
+registrationMaxOffset = 10 % in pixels, max allowed translation using cross-correlation
+blackShiftedBF = 1 % if 1, both phase and bf images have dark cells in bright background
+isMothermachine = 0 % if 1, the empty growth channel background is subtracted from growth channels
+% ---- Subtraction of empty trap/growth channel in the mothermachine
+nGrowthChannels = 16 % number of growth channels incl the empty channel
+emptyChannel = 16 % index of empty channel (channels are numerated from top to bottom). If an array of indices, the first index is used for empty channel subtraction
+channelWidth = 23 % in pixels, width of a growth channel
+minChannelDist = 45 % distance in pixels between centerlines of adjacent growth channels
+channelOffset = 5 % in pixels, used for channel mask and cross-correlation registration
+
+%------ Segmentation ------------------
+segmentationAlg = Pranet
+minCellArea = 150
+segmentationThreshold = 0.9
+pranetModelPath = /crex/proj/uppstore2018129/elflab/Misc/UNets/CellSegmentation/UNet_normal_universal_2021_12_06_backwardsCompatibility.pth
+segmentationScalingFactor = 0.5
+discardCellsOnBorder = 1
+segmentationDilationRadius = 0
+watershedH = 0
+pythonBinPath = /crex/proj/uppstore2018129/elflab/Projects/Data_analysis_develop/EXP-21-BX2618/Segmentation
+
+%------ Cell Tracking ----------------
+trackCells = 0
+pCnt0 = 1E-6 % probability of 0 cells in blob
+pCnt1 = 0.9 % probability of 1 cells in blob
+pCnt2 = 0.01 % probability of 2 cells in blob
+pCntExtrap = 0 % The factor by which the probabilities decrease in the extrapolated region.
+pDeath = 0 % probability of cell death
+deathShift = 2E-5 % factor that multiplies the death probabilities.
+pAppear = 1E-10 % probability of random cell appearence
+pDisappear = 1E-10 % probability of random cell disappearence
+minScore = -20 % lower bound on migration score
+migJaccardMin = 0.3 % lower bound on Jaccard index for cell migration
+migJaccardMax = 0.99 % upper bound on Jaccard index for cell migration
+migJaccardExp = 1 % in (0,1], exponent of Jaccard index for migration scores. The lower the exponent, the higher is the probability of migration
+migJaccardPostSplitMin = 0.6 % threshold for cell migration based on Jaccard index
+splitJaccardMin = 0.55 % lower bound on Jaccard index for cell division
+splitJaccardMax = 0.99 % upper bound on Jaccard index for cell division
+splitJaccardPreCond = 0.01 % factor that multiplies Jaccard index to count split probability
+JacMigCutOff = 0.6 % cell similarity threshold based on Jaccard index (area overlap percentage), between 0 and 1
+shortTrackCutOff = 40 % shorter cell tracks are discarded
+maxGrowthRate = 1.3 % max ratio between cell areas in adjacent frames
+centerOfMassMovementCutOff = 10 % in pixels, max allowed Euclidean distance between cell centroids in subsequent frames
+saveCellBoundaries = 1 % logical, if 1 stores bulky data about cell boundaries in MCell objects
+
+%------ Cell Measurements -----
+distanceThreshold = 6 % minimum distance from cell pixels to the border used for backbone curve fitting
+
+%------ Dot Processing -----------
+dotDetectionAlg = wavelet % choose between wavelet and radial symmetry algorithms
+dotTrackingAlg = % choose between naive or utrack, or leave empty
+excludeCellsFluorBoundary = 0 % if 1, mark cells inside fluo ROI with no detected dots by adding an empty particle. If 0, cells outside fluo ROI also get empty particles.
+cellInclusionMargin = 1 % cell dilation radius to include nearby dots, in phase pixels
+maxDotsInCell = Inf % max allowed number of dots per cell in each frame
+do3D = 0 % 1 if to compute z-coordinates of detected particles
+calibration3DPath = % path to file with variables calCurvex and calCurvey: spline approximations of calibration curves 
+
+% ----- Wavelet dot detection ---
+dotDetectionAlgorithm = wavelet
+noiseThreshold = 3.5
+minSpotArea = 1
+maxAxesRatio = 3
+
+% ----- Radial symmetry dot detection
+radii = [2  3]  % Vector of integer values at which "gradient" is computed (example can be [1 2 3 4 5])
+alpha = 3 % parameter that determines what kind of dots should be emphasized:
+          %  1 - accepts dots with bilateral symmetry.
+          %  2 - accepts dots that are between being radially symmetric and bilateral symmetry
+          %  3 - mostly accepts dots with radial symmetry
+beta = 0 %  Gradient threshold; Gradient below this threshold do not contribute to symmetry measure, defaults value is 0
+radThreshold = 5 % Radius of a region considered in non-maximal suppression. Typical value is 1-3 pixels
+radSymThreshold = 0.35 % Threshold for determining which dots should be found. Typical value can be 3-5 (this is the most sensitive parameter!)
+gaussKernRadFactor = 1.5 % the multiplication factor for the radius of the gaussian kernel.
+
+%------ Decode dot detection and localization algorithm
+decodeModelPath = model.pt % file with a pretrained model and extension .pt
+decodeParamPath = param_file.yaml % file with decode parameters used for model training, extension .yaml
+decodeThreshold = 0.2 % emitter probability threshold, between 0 and 1.
+
+%------ UTrack dot tracking -----------
+uWindow = 1 % the maximum allowed time gap (in frames) between two trajectories
+uMergeSplit = 0 % Parameter for merging two trajectories 
+%                  - 0 if no merging and splitting
+%                  - 1 if merging and splitting are to be considered
+%                  - 2 if only merging is to be considered 
+%                  - 3 if only splitting is to be considered
+uMinTrackLen = 2 % minimum length of trajectories used in closing gaps
+uMinSearchRadius = 2 % minimum search radius, in fluo pixel units
+uMaxSearchRadius = 5 % maximum search radius, in fluo pixel units
+uBrownStdMult = 3 % multiplication factor to calculate search radius from
+%                   standard deviation (if include standard deviation!)
+uLinearMotion = 1 % if consider the local particle density or nor
+%                      - 1 to account local particle density in addition to motion
+%                      - 0 to use only motion
+uMinGapSearchRadius = % minimum search radius for gap linking. If empty, use the same as minSearchRadius
+uMaxGapSearchRadius = % maximum search radius for gap linking. If empty, use the same as maxSearchRadius
+uAmpRatioLimit = [0.7 4] % minimum and maximum ratios between the intensity of
+%                          a feature after merging/before splitting and the sum
+%                          of the intensities of the 2 features that merge/split.
+uGapPenalty = 1.5 % penalty for increasing temporary disappearance time,
+%                   disappearing for n frames gets a penalty of gapPenalty^n.
+
+%------ Naive dot tracking algorithm -----
+maxDist = 10 % the maximal distance steplength, in fluo pixel units
+
+%----- All dot tracking algorithms ------
+minDotsInTraj = 4 % the minimal number of dots in a trajectory
+removeDuplicatedDots = 1 % if 1, find trajectories with duplicated dots and keep the longest ones
+
+%------ LSQrefineDots --------
+doLSQrefineDots = 1
+LSQrefineDots_ROIwidth = 11
+LSQrefineDots_drMax = 2
+LSQrefineDots_SminPx = 0.5
+LSQrefineDots_SmaxPx = 6
+LSQrefineDots_Nmin = 100
+EMgain = 4
+EMCCD_noiseStd = 
+EMCCD_offsetName = /crex/proj/uppstore2018129/elflab/Projects/LacIdynamicsInVivo/EXP-23-CA4306/offset.tif
+pxQuadPoints = 5
+fluoPxSize = 64
+MAPlambda = 514
+NA = 1.45
+psfModel = symMLE
+MAPprior = 
+cellInclusionMargin = 1
