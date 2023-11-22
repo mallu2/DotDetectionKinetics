@@ -1,3 +1,5 @@
+This part of the code is adjusted to analysis of equilibrium binding, where you do not use a media switch but rather take images on both sides of the chip.
+
 scriptImAnatoExcel.m
 --------------------
 Matlab scripts that runs the ImAnalysis pipeline of the ELfLab to segement cells using a Unet and detecting dots using Wavelet. The Parameter files are written for even and odd Positions, as the imaging is done on one chip witth two lanes that contain a different strain each. Each parameter file is adjused for the Region of Interest (ROI) of each strain.
