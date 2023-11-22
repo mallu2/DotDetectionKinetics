@@ -1,10 +1,6 @@
-scriptImAnatoExcel.m
---------------------
-Matlab scripts that runs the ImAnalysis pipeline of the ELfLab to segement cells using a Unet and detecting dots using Wavelet. The Parameter files are written for even and odd Positions, as the imaging is done on one chip witth two lanes that contain a different strain each. Each parameter file is adjused for the Region of Interest (ROI) of each strain.
-
-ParameterFileExpEven/Odd.txt
+ParameterFile_CA4340.txt
 ----------------------------
-The Parameter file with the specifications of ROI and wavelet detection parameters.
+Example parameter file for the ImAnalysis pipeline.
 
 CheckDotDetectionParams.ipynb
 -----------------------------
@@ -12,4 +8,4 @@ Script that is used to process gaussian fits to fluorescent dots obtained during
 
 CheckDotDetectionParams.ipynb
 -----------------------------
-The repo also contains a jupyter notebook for plotting of the detected spots and processing data obtained in different experiments. 
+Jupyter notebook for plotting of the detected spots and processing data obtained in different experiments. 
