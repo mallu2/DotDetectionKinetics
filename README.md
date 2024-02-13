@@ -15,4 +15,8 @@ Script that is used to process gaussian fits to fluorescent dots obtained during
 
 PlotResults.ipynb
 -----------------------------
-The repo also contains a jupyter notebook for plotting of the detected spots and processing data obtained in different experiments. 
+The repo also contains a jupyter notebook for plotting of the detected spots and processing data obtained in different experiments.
+
+DotDetectionFunctions.py
+-------------------------
+Contains the commonly used functions for analysis of the microfluidics/microscopy experiment. 
