@@ -129,7 +129,7 @@ def interpolate(df, j, i):
                       term[term["Run"]==i]["avg. N(Dots)/Cell"].values)
     return(lininp)
 
-def calculateDeltaDots(df, LacI= "WT", IPTG="0.3 mM", ONPG=False ,runs = [1,2,3,4], replica = 1):
+def calculate_delta_dots(df, LacI= "WT", IPTG="0.3 mM", ONPG=False ,runs = [1,2,3,4], replica = 1):
     """ Calculates the difference between number of dots in cells with and without operator --> specific binding.
     
     This works for a DataFrame that contains data from one or several experiments, where the relevant one is 
